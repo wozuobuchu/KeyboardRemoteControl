@@ -106,8 +106,8 @@ private:
 				if (esc) this->sts_.request_stop();
 				if (w) cmd_.linear_x += 0.900f;
 				if (s) cmd_.linear_x -= 0.900f;
-				if (a) cmd_.angular_z += 0.260f;
-				if (d) cmd_.angular_z -= 0.260f;
+				if (a) cmd_.angular_z += 0.300f;
+				if (d) cmd_.angular_z -= 0.300f;
 				if (lshift) cmd_.linear_x = 1.500f;
                 //std::cout
                 //    << "Q:" << q << "\n"
@@ -148,7 +148,7 @@ public:
         this->sts_.request_stop();
         this->socket_.close();
         if(this->klisten_thread_.joinable()) this->klisten_thread_.join();
-		if (this->socket_thread_.joinable()) this->socket_thread_.join();
+	if (this->socket_thread_.joinable()) this->socket_thread_.join();
         std::cout << " [ INFO ] KeyboardRemoteControl Sender end of work. " << std::endl;
     }
 
@@ -180,8 +180,8 @@ int main() {
     std::cout.tie(nullptr);
 
     __main__exec__();
-	std::this_thread::sleep_for(std::chrono::milliseconds(500));
-	system("pause");
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    system("pause");
 
     return 0;
 }
