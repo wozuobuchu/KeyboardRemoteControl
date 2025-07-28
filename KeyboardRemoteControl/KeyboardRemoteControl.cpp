@@ -63,8 +63,8 @@ private:
 
         bool k_esc;
     };
-	std::shared_mutex k_state_smtx_;
-	KeyboardState k_state_;
+    std::shared_mutex k_state_smtx_;
+    KeyboardState k_state_;
 
     void kListenThreadAssist(const double fps) {
         fps_func::FPS_Limiter limiter(fps);
@@ -123,7 +123,7 @@ private:
             }
             auto msg = std::format("{:.3f} {:.3f}", cmd_.linear_x, cmd_.angular_z);
             this->socket_.send_to(boost::asio::buffer(msg), this->remote_);
-			std::cout << " [ SEND ] " << msg << std::endl;
+            std::cout << " [ SEND ] " << msg << std::endl;
             limiter.limit();
         }
     }
@@ -147,6 +147,8 @@ public:
     virtual ~KeyboardRemoteControl() {
         this->sts_.request_stop();
         this->socket_.close();
+        if(this->klisten_thread_.joinable()) this->klisten_thread_.join();
+		if (this->socket_thread_.joinable()) this->socket_thread_.join();
         std::cout << " [ INFO ] KeyboardRemoteControl Sender end of work. " << std::endl;
     }
 
@@ -168,7 +170,7 @@ static void __main__exec__() {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
         return;
-        };
+    };
     standing_by(ctrl.get_token());
 }
 
@@ -178,6 +180,8 @@ int main() {
     std::cout.tie(nullptr);
 
     __main__exec__();
+	std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	system("pause");
 
     return 0;
 }
