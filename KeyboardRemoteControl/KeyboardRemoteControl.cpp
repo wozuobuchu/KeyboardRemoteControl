@@ -50,21 +50,14 @@ private:
     }
 
     struct KeyboardState {
-        bool k_q;
-        bool k_e;
-
-        bool k_w;
-        bool k_a;
-        bool k_s;
-        bool k_d;
-
+        bool k_q, k_e;
+        bool k_w, k_a, k_s, k_d;
         bool k_lshift;
         bool k_space;
-
         bool k_esc;
     };
     std::shared_mutex k_state_smtx_;
-    KeyboardState k_state_;
+    KeyboardState k_state_{0};
 
     void kListenThreadAssist(const double fps) {
         fps_func::FPS_Limiter limiter(fps);
@@ -88,7 +81,10 @@ private:
     struct Twist {
         float linear_x;
         float angular_z;
+        long long timestamp;
     };
+
+    bool manual_ctrl_ = true;
 
     boost::asio::io_context io_;
     udp::socket socket_;
@@ -109,6 +105,15 @@ private:
 				if (a) cmd_.angular_z += 0.300f;
 				if (d) cmd_.angular_z -= 0.300f;
 				if (lshift) cmd_.linear_x = 1.500f;
+
+                if (q) this->manual_ctrl_ = false;
+				if (e) this->manual_ctrl_ = true;
+
+                long long ts = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::high_resolution_clock::now().time_since_epoch()
+                ).count();
+
+                cmd_.timestamp = this->manual_ctrl_ ? ts : -ts;
                 //std::cout
                 //    << "Q:" << q << "\n"
                 //    << "E:" << e << "\n"
@@ -121,9 +126,14 @@ private:
                 //    << "ESC:" << esc << "\n"
                 //    << std::endl;
             }
-            auto msg = std::format("{:.3f} {:.3f}", cmd_.linear_x, cmd_.angular_z);
+            auto msg = std::format(
+                "{:.3f} {:.3f} {:d}",
+                cmd_.linear_x,
+                cmd_.angular_z,
+                cmd_.timestamp
+            );
             this->socket_.send_to(boost::asio::buffer(msg), this->remote_);
-            std::cout << " [ SEND ] " << msg << std::endl;
+            std::cout << " [ SEND ] " << msg << "\n";
             limiter.limit();
         }
     }
@@ -146,9 +156,9 @@ public:
     }
     virtual ~KeyboardRemoteControl() {
         this->sts_.request_stop();
-        this->socket_.close();
         if(this->klisten_thread_.joinable()) this->klisten_thread_.join();
-	if (this->socket_thread_.joinable()) this->socket_thread_.join();
+        if (this->socket_thread_.joinable()) this->socket_thread_.join();
+        this->socket_.close();
         std::cout << " [ INFO ] KeyboardRemoteControl Sender end of work. " << std::endl;
     }
 
@@ -156,6 +166,7 @@ public:
     std::stop_token get_token() { return this->sts_.get_token(); }
 
     void launchKeyboardListening(const double key_listen_fps, const double socket_fps) {
+        if (this->sts_.stop_requested()) return;
         this->klisten_thread_ = std::thread(std::bind(&KeyboardRemoteControl::kListenThreadAssist,this,key_listen_fps));
         this->socket_thread_ = std::thread(std::bind(&KeyboardRemoteControl::socketThreadAssist,this,socket_fps));
     }
@@ -167,7 +178,7 @@ static void __main__exec__() {
 
     std::function<void(std::stop_token)> standing_by = [](std::stop_token st) ->void {
         while (!st.stop_requested()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
         return;
     };
