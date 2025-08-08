@@ -24,7 +24,7 @@ private:
     int tsign(long long TimeStamp) { return ( (TimeStamp>0) - (TimeStamp<0) ); }
 
     std::shared_mutex manual_ctrl_smtx_;
-    bool manual_ctrl_ = true;
+    bool manual_ctrl_ = false;
 
     boost::asio::io_context io_;
     udp::socket socket_;
@@ -32,7 +32,7 @@ private:
     std::array<char, 64> recv_buffer_;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_;
-    long long timestamp_last_ = 1;
+    long long timestamp_last_ = 0;
     void start_receive() {
         socket_.async_receive_from(
             boost::asio::buffer(recv_buffer_), remote_endpoint_,
@@ -51,9 +51,6 @@ private:
                                 std::unique_lock<std::shared_mutex> lck(this->manual_ctrl_smtx_);
                                 this->manual_ctrl_ = true;
                             }
-                        } else if (timestamp==0) {
-                            rclcpp::shutdown();
-                            return;
                         } else if ((timestamp<0) && (tsign(timestamp)!=tsign(timestamp_last_))) {
                             std::unique_lock<std::shared_mutex> lck(this->manual_ctrl_smtx_);
                             this->manual_ctrl_ = false;

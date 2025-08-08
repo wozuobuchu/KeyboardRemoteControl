@@ -84,7 +84,7 @@ private:
         long long timestamp;
     };
 
-    bool manual_ctrl_ = true;
+    bool manual_ctrl_ = false;
 
     boost::asio::io_context io_;
     udp::socket socket_;
