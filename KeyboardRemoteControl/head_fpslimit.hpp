@@ -1,6 +1,7 @@
 #ifndef _HEAD_FPSLIMIT_HPP_
 #define _HEAD_FPSLIMIT_HPP_
 namespace fps_func {
+
 class FPS_Limiter {
 private:
     const std::chrono::duration< double,std::ratio<1,1> > targetFrameTime;
@@ -20,5 +21,6 @@ public:
         return;
     }
 };
+
 }
 #endif
