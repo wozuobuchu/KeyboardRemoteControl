@@ -1,5 +1,5 @@
-#ifndef _HEAD_FPSLIMIT_HPP_
-#define _HEAD_FPSLIMIT_HPP_
+#ifndef _HEAD_FPSLIMIT_HPP
+#define _HEAD_FPSLIMIT_HPP
 namespace fps_func {
 
 class FPS_Limiter {
