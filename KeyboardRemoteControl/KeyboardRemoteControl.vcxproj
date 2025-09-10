@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="head_fpslimit.hpp" />
+    <ClInclude Include="ParamsServer.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KeyboardRemoteControl.cpp" />

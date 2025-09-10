@@ -14,6 +14,7 @@
 #include <memory>
 
 #include "head_fpslimit.hpp"
+#include "ParamsServer.hpp"
 
 using boost::asio::ip::udp;
 
@@ -26,27 +27,30 @@ private:
     std::stop_source sts_;
 
     std::string cfg_location_;
+
     std::string target_ip_;
     uint16_t target_port_;
+	float max_linear_velocity_ = 1.500f;
+    float linear_velocity_ = 0.900f;
+    float angular_velocity_ = 0.300f;
 
-    template <typename TargetVar>
-    bool load_var(TargetVar& target, std::string fileLocation) {
-        std::stringstream buffer;
-        std::ifstream readFile(fileLocation);
-        if (!readFile.is_open()) return false;
-        buffer << readFile.rdbuf();
-        return static_cast<bool>(buffer >> target);
-    }
+    ParamsServer ps_;
 
     bool load_config() {
         bool tmp_res = true;
-        tmp_res &= this->load_var<std::string>(this->target_ip_, this->cfg_location_+"/target_ip.txt");
-        tmp_res &= this->load_var<uint16_t>(this->target_port_, this->cfg_location_ + "/target_port.txt");
+        tmp_res &= this->ps_.load_param<std::string>(this->target_ip_, "target_ip");
+        tmp_res &= this->ps_.load_param<uint16_t>(this->target_port_, "target_port");
+        tmp_res &= this->ps_.load_param<float>(this->max_linear_velocity_, "max_linear_velocity");
+        tmp_res &= this->ps_.load_param<float>(this->linear_velocity_, "linear_velocity");
+        tmp_res &= this->ps_.load_param<float>(this->angular_velocity_, "angular_velocity");
         return tmp_res;
     }
 
     void printConfigInfo() const {
-        std::cout <<" [ CFG ] target_link: "<<this->target_ip_<<":"<<this->target_port_<<std::endl;
+        std::cout << " [ CFG ] target_link: " << this->target_ip_ << ":" << this->target_port_ << "\n";
+        std::cout << " [ CFG ] max_linear_velocity: " << this->max_linear_velocity_ << "\n";
+        std::cout << " [ CFG ] linear_velocity: " << this->linear_velocity_ << "\n";
+        std::cout << " [ CFG ] angular_velocity: " << this->angular_velocity_ << "\n";
     }
 
     struct KeyboardState {
@@ -100,11 +104,11 @@ private:
                 std::shared_lock<std::shared_mutex> lck(this->k_state_smtx_);
                 auto [q, e, w, a, s, d, lshift, space, esc] = k_state_;
 				if (esc) this->sts_.request_stop();
-				if (w) cmd_.linear_x += 0.900f;
-				if (s) cmd_.linear_x -= 0.900f;
-				if (a) cmd_.angular_z += 0.300f;
-				if (d) cmd_.angular_z -= 0.300f;
-				if (lshift) cmd_.linear_x = 1.500f;
+                if (w) cmd_.linear_x += this->linear_velocity_;
+                if (s) cmd_.linear_x -= this->linear_velocity_;
+                if (a) cmd_.angular_z += this->angular_velocity_;
+                if (d) cmd_.angular_z -= this->angular_velocity_;
+                if (lshift) cmd_.linear_x = this->max_linear_velocity_;
 
                 if (q) this->manual_ctrl_ = false;
 				if (e) this->manual_ctrl_ = true;
@@ -114,17 +118,6 @@ private:
                 ).count();
 
                 cmd_.timestamp = this->manual_ctrl_ ? ts : -ts;
-                //std::cout
-                //    << "Q:" << q << "\n"
-                //    << "E:" << e << "\n"
-                //    << "W:" << w << "\n"
-                //    << "A:" << a << "\n"
-                //    << "S:" << s << "\n"
-                //    << "D:" << d << "\n"
-                //    << "L_SHIFT:" << lshift << "\n"
-                //    << "SPACE:" << space << "\n"
-                //    << "ESC:" << esc << "\n"
-                //    << std::endl;
             }
             auto msg = std::format(
                 "{:.3f} {:.3f} {:d}",
@@ -142,7 +135,7 @@ private:
     std::thread socket_thread_;
 
 public:
-    KeyboardRemoteControl(std::string cfg_location) : cfg_location_(cfg_location), socket_(io_) {
+    KeyboardRemoteControl(std::string cfg_location) : cfg_location_(cfg_location), ps_(ParamsServer(cfg_location)), socket_(io_) {
         std::cout << this->cfg_location_ << std::endl;
         if(!this->load_config()) {
             this->request_stop();
@@ -173,7 +166,7 @@ public:
 };
 
 static void __main__exec__() {
-    KeyboardRemoteControl ctrl("./cfg");
+    KeyboardRemoteControl ctrl("./cfg/cfg.txt");
     ctrl.launchKeyboardListening(1000.0, 120.0);
 
     std::function<void(std::stop_token)> standing_by = [](std::stop_token st) ->void {

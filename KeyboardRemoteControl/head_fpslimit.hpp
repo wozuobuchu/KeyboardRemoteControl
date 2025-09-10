@@ -1,4 +1,5 @@
-#ifndef _HEAD_FPSLIMIT_HPP
+#ifndef _HEAD_FPSLIMIT_HPP_
+#define _HEAD_FPSLIMIT_HPP_
 namespace fps_func {
 class FPS_Limiter {
 private:
@@ -20,5 +21,4 @@ public:
     }
 };
 }
-#define _HEAD_FPSLIMIT_HPP
 #endif
