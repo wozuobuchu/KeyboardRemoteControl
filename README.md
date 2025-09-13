@@ -12,3 +12,5 @@ a - left
 d - right  
 shift - speedup  
 esc - exit  
+q - release control
+e - take control
