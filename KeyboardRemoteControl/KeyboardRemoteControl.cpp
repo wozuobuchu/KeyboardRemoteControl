@@ -34,6 +34,11 @@ private:
     float linear_velocity_ = 0.900f;
     float angular_velocity_ = 0.300f;
 
+public:
+    double keyboard_listening_fps_ = 1000.0;
+    double udp_fps_ = 240.0;
+
+private:
     ParamsServer ps_;
 
     bool load_config() {
@@ -43,6 +48,8 @@ private:
         tmp_res &= this->ps_.load_param<float>(this->max_linear_velocity_, "max_linear_velocity");
         tmp_res &= this->ps_.load_param<float>(this->linear_velocity_, "linear_velocity");
         tmp_res &= this->ps_.load_param<float>(this->angular_velocity_, "angular_velocity");
+        tmp_res &= this->ps_.load_param<double>(this->keyboard_listening_fps_, "keyboard_listening_fps");
+        tmp_res &= this->ps_.load_param<double>(this->udp_fps_, "udp_fps");
         return tmp_res;
     }
 
@@ -51,6 +58,8 @@ private:
         std::cout << " [ CFG ] max_linear_velocity: " << this->max_linear_velocity_ << "\n";
         std::cout << " [ CFG ] linear_velocity: " << this->linear_velocity_ << "\n";
         std::cout << " [ CFG ] angular_velocity: " << this->angular_velocity_ << "\n";
+        std::cout << " [ CFG ] keyboard_listening_fps: " << this->keyboard_listening_fps_ << "\n";
+        std::cout << " [ CFG ] udp_fps_: " << this->udp_fps_ << "\n";
     }
 
     struct KeyboardState {
@@ -119,6 +128,7 @@ private:
 
                 cmd_.timestamp = this->manual_ctrl_ ? ts : -ts;
             }
+
             auto msg = std::format(
                 "{:.3f} {:.3f} {:d}",
                 cmd_.linear_x,
@@ -167,7 +177,7 @@ public:
 
 static void __main__exec__() {
     KeyboardRemoteControl ctrl("./cfg/cfg.txt");
-    ctrl.launchKeyboardListening(1000.0, 120.0);
+    ctrl.launchKeyboardListening(ctrl.keyboard_listening_fps_, ctrl.udp_fps_);
 
     std::function<void(std::stop_token)> standing_by = [](std::stop_token st) ->void {
         while (!st.stop_requested()) {
@@ -178,13 +188,19 @@ static void __main__exec__() {
     standing_by(ctrl.get_token());
 }
 
-int main() {
+static inline void async_iostream() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
     std::cout.tie(nullptr);
+}
+
+int main() {
+    async_iostream();
 
     __main__exec__();
+
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
     system("pause");
 
     return 0;
