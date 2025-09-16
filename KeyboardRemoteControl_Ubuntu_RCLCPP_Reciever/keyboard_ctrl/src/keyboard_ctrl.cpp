@@ -13,6 +13,7 @@
 #include <stop_token>
 #include <latch>
 #include <condition_variable>
+#include <cmath>
 
 using boost::asio::ip::udp;
 using namespace std::chrono_literals;
@@ -23,8 +24,7 @@ private:
 
     int tsign(long long TimeStamp) { return ( (TimeStamp>0) - (TimeStamp<0) ); }
 
-    std::shared_mutex manual_ctrl_smtx_;
-    bool manual_ctrl_ = false;
+    std::atomic<bool> manual_ctrl_ = false;
 
     boost::asio::io_context io_;
     udp::socket socket_;
@@ -48,12 +48,10 @@ private:
                             msg.angular.z = ang;
                             pub_->publish(msg);
                             if(tsign(timestamp)!=tsign(timestamp_last_)) {
-                                std::unique_lock<std::shared_mutex> lck(this->manual_ctrl_smtx_);
-                                this->manual_ctrl_ = true;
+                                this->manual_ctrl_.store(true);
                             }
                         } else if ((timestamp<0) && (tsign(timestamp)!=tsign(timestamp_last_))) {
-                            std::unique_lock<std::shared_mutex> lck(this->manual_ctrl_smtx_);
-                            this->manual_ctrl_ = false;
+                            this->manual_ctrl_.store(false);
                         }
                         timestamp_last_ = timestamp;
                     } else {
@@ -66,12 +64,7 @@ private:
     }
 
     void cmd_relay_callback(const geometry_msgs::msg::Twist::SharedPtr msg) {
-        bool f;
-        {
-            std::shared_lock<std::shared_mutex> lck(this->manual_ctrl_smtx_);
-            f = this->manual_ctrl_;
-        }
-
+        bool f = this->manual_ctrl_.load();
         if(f==false) {
             geometry_msgs::msg::Twist twist;
             twist.linear.x = msg->linear.x;
@@ -88,9 +81,9 @@ public:
         ss<<port;
         std::string port_str;
         ss>>port_str;
-        this->pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+        this->pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_trans", 10);
         this->sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
-            "/cmd_relay", 10,
+            "/cmd_vel", 10,
             std::bind(&UdpToCmdVel::cmd_relay_callback,this,std::placeholders::_1)
         );
         RCLCPP_INFO(this->get_logger(), (std::string("")+"UDP listener bound to port"+port_str).c_str());
@@ -106,6 +99,9 @@ public:
 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
+
+    asnode::AsyncNodeSpinner sp_;
+    sp_.insert_node(std::make_shared<CmdVelToCar>());
 
     rclcpp::spin(std::make_shared<UdpToCmdVel>(5005));
 

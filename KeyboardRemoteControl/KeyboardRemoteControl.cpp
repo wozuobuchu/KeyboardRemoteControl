@@ -34,7 +34,6 @@ private:
     float linear_velocity_ = 0.900f;
     float angular_velocity_ = 0.300f;
 
-public:
     double keyboard_listening_fps_ = 1000.0;
     double udp_fps_ = 240.0;
 
@@ -168,16 +167,16 @@ public:
     void request_stop() { this->sts_.request_stop(); }
     std::stop_token get_token() { return this->sts_.get_token(); }
 
-    void launchKeyboardListening(const double key_listen_fps, const double socket_fps) {
+    void launchKeyboardListening() {
         if (this->sts_.stop_requested()) return;
-        this->klisten_thread_ = std::thread(std::bind(&KeyboardRemoteControl::kListenThreadAssist,this,key_listen_fps));
-        this->socket_thread_ = std::thread(std::bind(&KeyboardRemoteControl::socketThreadAssist,this,socket_fps));
+        this->klisten_thread_ = std::thread(std::bind(&KeyboardRemoteControl::kListenThreadAssist,this,keyboard_listening_fps_));
+        this->socket_thread_ = std::thread(std::bind(&KeyboardRemoteControl::socketThreadAssist,this,udp_fps_));
     }
 };
 
 static void __main__exec__() {
     KeyboardRemoteControl ctrl("./cfg/cfg.txt");
-    ctrl.launchKeyboardListening(ctrl.keyboard_listening_fps_, ctrl.udp_fps_);
+    ctrl.launchKeyboardListening();
 
     std::function<void(std::stop_token)> standing_by = [](std::stop_token st) ->void {
         while (!st.stop_requested()) {

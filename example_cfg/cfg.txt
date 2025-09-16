@@ -3,9 +3,9 @@ target_ip: 192.168.5.8
 target_port: 5005
 
 #velocity  ----  linear-m/s angular-rad/s  ----
-max_linear_velocity: 2.000
-linear_velocity: 0.800
-angular_velocity: 0.700
+max_linear_velocity: 1.500
+linear_velocity: 0.650
+angular_velocity: 0.750
 
 #fps
 keyboard_listening_fps: 1000.0

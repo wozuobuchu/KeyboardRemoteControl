@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
+
 project(keyboard_ctrl)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -9,14 +10,17 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast")
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_C_STANDARD 17)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
+find_package(nav_msgs REQUIRED)
 
 add_executable(keyboard_ctrl src/keyboard_ctrl.cpp)
+target_link_libraries(keyboard_ctrl atomic)
 target_include_directories(keyboard_ctrl PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
@@ -25,6 +29,7 @@ ament_target_dependencies( keyboard_ctrl
   rclcpp
   Boost
   geometry_msgs
+  nav_msgs
 )
 
 install(TARGETS keyboard_ctrl
